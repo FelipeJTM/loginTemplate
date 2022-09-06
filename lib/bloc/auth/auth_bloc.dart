@@ -3,7 +3,6 @@ import 'package:meta/meta.dart';
 
 import 'package:equatable/equatable.dart';
 
-import '../../helper/login_helper.dart';
 
 part 'auth_event.dart';
 
@@ -17,6 +16,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<GoToLoginEvent>((event, emit) {
       return emit(UnAuthenticatedState());
     });
-    //Todo: handle Registering event
+    on<GoToRegisterEvent>((event, emit) {
+      return emit(RegisteringState());
+    });
   }
 }

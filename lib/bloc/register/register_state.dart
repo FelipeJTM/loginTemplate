@@ -2,7 +2,7 @@ part of 'register_bloc.dart';
 
 @immutable
 abstract class RegisterState extends Equatable{
-  RegisterState();
+  const RegisterState();
 
   @override
   List<Object> get props => [];
@@ -14,13 +14,13 @@ class RegisterLoadingState extends RegisterState {}
 
 class RegisterCompletedState extends RegisterState {
   final bool status;
-  RegisterCompletedState({required this.status});
+  const RegisterCompletedState({required this.status});
 }
 
 class RegisterFailedState extends RegisterState {
   final String error;
 
-  RegisterFailedState(this.error);
+  const RegisterFailedState(this.error);
 
   @override
   String toString() {

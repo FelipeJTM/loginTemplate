@@ -29,7 +29,7 @@ void main() {
 
       //await tester.pumpWidget(inputUserName);
       //final Finder fab = find.byTooltip('Increment');
-      await tester.enterText(find.byKey(Key("titleInput")), "title");
+      await tester.enterText(find.byKey(const Key("titleInput")), "title");
 
       // Trigger a frame.
       await tester.pumpAndSettle();

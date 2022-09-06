@@ -19,7 +19,7 @@ void registerBlocTest() {
           email: 'felipe_test@gmail.com',
         ),
       ),
-      expect: () => <RegisterState>[RegisterLoadingState(),RegisterCompletedState(status: true)],
+      expect: () => <RegisterState>[RegisterLoadingState(),const RegisterCompletedState(status: true)],
     );
   });
 }

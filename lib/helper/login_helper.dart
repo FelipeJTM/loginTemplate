@@ -6,13 +6,13 @@ class LoginHelper {
 
   LoginHelper(this.userName, this.password);
 
-  Future<bool> verifyPassword() async {
-    var userData = await getStoredUserData();
+  Future<bool> verifyUserAndPassword() async {
+    var userData = await _getStoredUserData();
     if (userName == userData['user'] && password == userData['password']) return true;
     return false;
   }
 
-  Future<Map<String, dynamic>> getStoredUserData() async {
+  Future<Map<String, dynamic>> _getStoredUserData() async {
     final String? storedUser = await SecureStorageService.getUserName();
     final String? storedPassword = await SecureStorageService.getPassword();
     return {

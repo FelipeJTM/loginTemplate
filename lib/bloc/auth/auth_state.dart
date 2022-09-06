@@ -13,4 +13,5 @@ class UnAuthenticatedState extends AuthState {}
 
 class AuthenticatedState extends AuthState {}
 
-//Todo add class RegisteringState
+class RegisteringState extends AuthState {}
+

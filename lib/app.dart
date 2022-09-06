@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:login_template/pages/home.dart';
 import 'package:login_template/pages/login.dart';
+import 'package:login_template/pages/register.dart';
 
 import 'bloc/auth/auth_bloc.dart';
 
@@ -25,7 +26,6 @@ class MyAppView extends StatefulWidget {
 }
 
 class _MyAppViewState extends State<MyAppView> {
-  // This widget is the root of your application.
   Widget _currentView = const Login();
 
   @override
@@ -40,6 +40,11 @@ class _MyAppViewState extends State<MyAppView> {
         if (state is AuthenticatedState) {
           setState(() {
             _currentView = const Home();
+          });
+        }
+        if (state is RegisteringState) {
+          setState(() {
+            _currentView = const Register();
           });
         }
       },

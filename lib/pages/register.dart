@@ -1,12 +1,11 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:login_template/bloc/auth/auth_bloc.dart';
 import 'package:login_template/data/models/password_model.dart';
 import '../bloc/register/register_bloc.dart';
 import '../cosntanst/layout_constants.dart';
-import '../widgets/general.dart';
 import '../widgets/snack_bar.dart';
-import 'login.dart';
 
 class Register extends StatelessWidget {
   const Register({super.key});
@@ -40,7 +39,7 @@ class _RegisterViewState extends State<RegisterView> {
   final _passwordController = TextEditingController();
   final _verifyPasswordController = TextEditingController();
   bool _hidePassword = true;
-  bool _isLoading = false;
+  bool _isPerformingRegister = false;
 
   String get title => super.widget.title;
 
@@ -57,80 +56,79 @@ class _RegisterViewState extends State<RegisterView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<RegisterBloc, RegisterState>(
-      listener: (context, state) {
-        if (state is RegisterLoadingState) {
-          setState(() => _isLoading = true);
-        }
-        if (state is RegisterCompletedState) {
-          setState(() => _isLoading = false);
-          showSnackBar(context, "operacion realizada con exito", Colors.green);
-          nextScreenReplace(context, const Login());
-        }
-        if (state is RegisterFailedState) {
-          setState(() => _isLoading = false);
-          showSnackBar(context, state.error, Colors.red);
-          cleanFields();
-        }
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        return BlocListener<RegisterBloc, RegisterState>(
+            listener: (context, state) {
+          if (state is RegisterLoadingState) {
+            setState(() => _isPerformingRegister = true);
+          }
+          if (state is RegisterCompletedState) {
+            setState(() => _isPerformingRegister = false);
+            showSnackBar(
+                context, "operacion realizada con exito", Colors.green);
+            context.read<AuthBloc>().add(GoToLoginEvent());
+          }
+          if (state is RegisterFailedState) {
+            setState(() => _isPerformingRegister = false);
+            showSnackBar(context, state.error, Colors.red);
+            cleanFields();
+          }
+        }, child: BlocBuilder<RegisterBloc, RegisterState>(
+          builder: (context, registerState) {
+            return Scaffold(
+              appBar: AppBar(title: Text(title)),
+              body: loginBody(),
+            );
+          },
+        ));
       },
-      child: BlocBuilder<RegisterBloc, RegisterState>(
-        builder: (context, state) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(title),
-            ),
-            body: Center(
-              child: ListView(
-                shrinkWrap: true,
+    );
+  }
+
+  Widget loginBody() {
+    return Center(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height,
+            padding: const EdgeInsets.symmetric(
+                horizontal: LayoutConstants.paddingXL),
+            child: Form(
+              key: _key,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    height: MediaQuery.of(context).size.height,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: LayoutConstants.paddingXL),
-                    child: Form(
-                      key: _key,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          basicTextField(
-                              _emailController, "Correo electronico",true),
-                          basicTextField(
-                              _usernameController, "Nombre de usuario"),
-                          passwordTextField(PasswordModel(
-                              labelText: "Contraseña",
-                              passwordController: _passwordController,
-                              repeatPasswordController:
-                                  _verifyPasswordController,
-                              willEnableSuffix: true)),
-                          passwordTextField(PasswordModel(
-                              labelText: "Repetir Contraseña",
-                              passwordController: _verifyPasswordController,
-                              repeatPasswordController: _passwordController)),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          (_isLoading)
-                              ? const CircularProgressIndicator()
-                              : const SizedBox.shrink(),
-                          registerButton(),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          goToRegister()
-                        ],
-                      ),
-                    ),
-                  )
+                  basicTextField(_emailController, "Correo electronico", true),
+                  basicTextField(_usernameController, "Nombre de usuario"),
+                  passwordTextField(PasswordModel(
+                      labelText: "Contraseña",
+                      passwordController: _passwordController,
+                      repeatPasswordController: _verifyPasswordController,
+                      willEnableSuffix: true)),
+                  passwordTextField(PasswordModel(
+                      labelText: "Repetir Contraseña",
+                      passwordController: _verifyPasswordController,
+                      repeatPasswordController: _passwordController)),
+                  const SizedBox(height: 20),
+                  (_isPerformingRegister)
+                      ? const CircularProgressIndicator()
+                      : const SizedBox.shrink(),
+                  registerButton(),
+                  const SizedBox(height: 20),
+                  goToRegister()
                 ],
               ),
             ),
-          );
-        },
+          )
+        ],
       ),
     );
   }
 
-  Widget basicTextField(TextEditingController controller, String labelText, [bool isEmailField = false]) {
+  Widget basicTextField(TextEditingController controller, String labelText,
+      [bool isEmailField = false]) {
     return Padding(
       padding: const EdgeInsets.all(LayoutConstants.paddingM),
       child: TextFormField(
@@ -141,7 +139,7 @@ class _RegisterViewState extends State<RegisterView> {
         ),
         validator: (value) {
           var problemWithMailField = verificationForEmail(value!);
-          if(isEmailField && problemWithMailField != null)return problemWithMailField;
+          if (isEmailField && problemWithMailField != null) return problemWithMailField;
           var problemWithLength = verifyLengthInWord(4, value);
           if (problemWithLength != null) return problemWithLength;
           return null;
@@ -175,8 +173,10 @@ class _RegisterViewState extends State<RegisterView> {
         ),
         validator: (value) {
           var problemWithLength = verifyLengthInWord(3, value!);
-          if(problemWithLength != null) return problemWithLength;
-          var problemWithPasswords = checkPasswords(passwordSetting.passwordController.text,passwordSetting.repeatPasswordController.text );
+          if (problemWithLength != null) return problemWithLength;
+          var problemWithPasswords = checkPasswords(
+              passwordSetting.passwordController.text,
+              passwordSetting.repeatPasswordController.text);
           if (problemWithPasswords != null) return problemWithPasswords;
           return null;
         },
@@ -219,9 +219,7 @@ class _RegisterViewState extends State<RegisterView> {
               ),
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
-                  //Todo: Replace with the event handler from auth. x2
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (context) => const Login()));
+                  context.read<AuthBloc>().add(GoToLoginEvent());
                 }),
         ]));
   }
@@ -234,22 +232,24 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   dynamic verifyLengthInWord(int length, String value) {
-    if(value.length < length) return "minimo $length caracteres";;
+    if (value.length < length) return "minimo $length caracteres";
     return null;
   }
 
   dynamic checkPasswords(String password, String repeatPassword) {
-   if(password != repeatPassword) return "Las contraseñas no son iguales";
-   return null;
+    if (password != repeatPassword) return "Las contraseñas no son iguales";
+    return null;
   }
 
   dynamic checkIfNull(String value) {
-    if (value == null || value.isEmpty) return "Campo obligatorio";
+    if (value.isEmpty) return "Campo obligatorio";
     return null;
   }
 
   dynamic verificationForEmail(String value) {
-    if(!RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(value)){
+    if (!RegExp(
+            r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+        .hasMatch(value)) {
       return "ingresa un email valido";
     }
     return null;

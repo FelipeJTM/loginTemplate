@@ -7,4 +7,4 @@ class GoToHomeEvent extends AuthEvent {}
 
 class GoToLoginEvent extends AuthEvent {}
 
-//Todo: add event to go to Registering event
+class GoToRegisterEvent extends AuthEvent{}

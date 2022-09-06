@@ -1,20 +1,24 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:login_template/pages/register.dart';
+import 'package:login_template/bloc/login/login_bloc.dart';
 
 import '../bloc/auth/auth_bloc.dart';
 import '../cosntanst/layout_constants.dart';
 import '../services/secure_storage_service.dart';
+import '../widgets/snack_bar.dart';
 
 class Login extends StatelessWidget {
   const Login({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const LoginView(
-      title: "LOGIN TEMPLATE",
-      message: "prosessing data",
+    return BlocProvider<LoginBloc>(
+      create: (context) => LoginBloc(),
+      child: const LoginView(
+        title: "LOGIN TEMPLATE",
+        message: "prosessing data",
+      ),
     );
   }
 }
@@ -35,8 +39,7 @@ class _LoginViewState extends State<LoginView> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _hidePassword = true;
-
-  //String _hintText = "";
+  bool _isPerformingLogin = false;
 
   String get title => super.widget.title;
 
@@ -45,7 +48,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   void initState() {
     super.initState();
-    init();
+    getUserName();
   }
 
   @override
@@ -55,58 +58,96 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  Future init() async {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        return BlocListener<LoginBloc, LoginState>(
+          listener: (context, state) {
+            if (state is LoginLoadingState) {
+              toggleLoading(true);
+            }
+            if (state is LoginSuccessfulState) {
+              toggleLoading(false);
+              showSnackBar(context, "bienvenido de vuelta", Colors.green);
+              if (_key.currentState!.validate()) {
+                context.read<AuthBloc>().add(GoToHomeEvent());
+              }
+            }
+            if (state is LoginBadCredentialsState) {
+              toggleLoading(false);
+              showSnackBar(context, "Usuario o contraseña incorrectos",
+                  Colors.deepOrange);
+            }
+            if (state is LoginErrorState) {
+              toggleLoading(false);
+              showSnackBar(context, state.error, Colors.red);
+            }
+          },
+          child: BlocBuilder<LoginBloc, LoginState>(
+            builder: (context, loginState) {
+              return Scaffold(
+                  appBar: AppBar(
+                    title: Center(
+                      child: Text(title),
+                    ),
+                  ),
+                  body: loginBody());
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void toggleLoading(bool newValue) {
+    setState(() {
+      _isPerformingLogin = newValue;
+    });
+  }
+
+  Future getUserName() async {
     final name = await SecureStorageService.getUserName() ?? "";
     setState(() {
       _usernameController.text = name;
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Center(
-              child: Text(title),
-            ),
-          ),
-          body: Center(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                Container(
-                  height: MediaQuery.of(context).size.height,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: LayoutConstants.paddingXL),
-                  child: Form(
-                    key: _key,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Inicia sesión",
-                          style: TextStyle(
-                              fontSize: 35, fontWeight: FontWeight.w300),
-                        ),
-                        userNameTextField(),
-                        passwordTextField(),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        loginButton(),
-                        const SizedBox(height: 20),
-                        goToRegister(),
-                      ],
-                    ),
+  Widget loginBody() {
+    return Center(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height,
+            padding: const EdgeInsets.symmetric(
+                horizontal: LayoutConstants.paddingXL),
+            child: Form(
+              key: _key,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Inicia sesión",
+                    style: TextStyle(fontSize: 35, fontWeight: FontWeight.w300),
                   ),
-                )
-              ],
+                  userNameTextField(),
+                  passwordTextField(),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  (_isPerformingLogin)
+                      ? const CircularProgressIndicator()
+                      : const SizedBox.shrink(),
+                  loginButton(),
+                  const SizedBox(height: 20),
+                  goToRegister(),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          )
+        ],
+      ),
     );
   }
 
@@ -169,7 +210,7 @@ class _LoginViewState extends State<LoginView> {
       child: ElevatedButton(
           onPressed: () {
             if (_key.currentState!.validate()) {
-              context.read<AuthBloc>().add(GoToHomeEvent());
+              context.read<LoginBloc>().add(LoginWithUserAndPassword(_usernameController.text, _passwordController.text));
             }
           },
           child: const Text("Inicia sesión")),
@@ -193,11 +234,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
-                //Todo: Replace with the event handler from auth.
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const Register()));
+                  context.read<AuthBloc>().add(GoToRegisterEvent());
                 }),
         ]));
   }
